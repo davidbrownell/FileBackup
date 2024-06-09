@@ -18,5 +18,5 @@ default_context:
   gist_id: f15146b1b8fdc0a5d45ac0eb786a84f7
   gist_username: davidbrownell
   minisign_public_key: RWTO8gifpEKQhwiguxsldM47Php1GeTs0foueIpaLPp0xSy0N5FBn/70
-  openssf_best_practices_badge_id: 9068
+  openssf_best_practices_badge_id: 9069
   create_docker_image: True

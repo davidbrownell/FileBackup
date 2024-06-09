@@ -8,7 +8,7 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/FileBackup?color=dark-green)](https://pypi.org/project/filebackup/)
 [![PyPI - Version](https://img.shields.io/pypi/v/FileBackup?color=dark-green)](https://pypi.org/project/filebackup/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/FileBackup)](https://pypistats.org/packages/filebackup)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9068/badge)](https://www.bestpractices.dev/projects/9068)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9069/badge)](https://www.bestpractices.dev/projects/9069)
 
 <!-- END: Exclude Package -->
 
