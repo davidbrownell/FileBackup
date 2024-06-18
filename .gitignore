@@ -12,3 +12,6 @@ Deactivate*.sh
 build/**
 dist/**
 src/FileBackup.egg-info/**
+
+minisign_key.pri
+minisign_key.pub

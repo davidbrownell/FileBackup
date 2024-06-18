@@ -12,7 +12,8 @@ import typer
 
 from typer.core import TyperGroup  # type: ignore [import-untyped]
 
-from FileBackup import Math, __version__
+from FileBackup import __version__
+from FileBackup.CommandLine import MirrorEntryPoint
 
 
 # ----------------------------------------------------------------------
@@ -33,56 +34,12 @@ app = typer.Typer(
 )
 
 
-# ----------------------------------------------------------------------
-@app.command("Add")
-def Add(
-    x: int,
-    y: int,
-) -> None:
-    """Adds 2 values."""
-
-    sys.stdout.write(str(Math.Add(x, y)))
+app.add_typer(MirrorEntryPoint.app, name="mirror", help=MirrorEntryPoint.__doc__)
 
 
-# ----------------------------------------------------------------------
-@app.command("Sub")
-def Sub(
-    x: int,
-    y: int,
-) -> None:
-    """Subtracts 2 values."""
-
-    sys.stdout.write(str(Math.Sub(x, y)))
-
-
-# ----------------------------------------------------------------------
-@app.command("Mult")
-def Mult(
-    x: int,
-    y: int,
-) -> None:
-    """Multiplies 2 values."""
-
-    sys.stdout.write(str(Math.Mult(x, y)))
-
-
-# ----------------------------------------------------------------------
-@app.command("Div")
-def Div(
-    x: int,
-    y: int,
-) -> None:
-    """Divides 1 value by another."""
-
-    sys.stdout.write(str(Math.Div(x, y)))
-
-
-# ----------------------------------------------------------------------
-@app.command("Version")
-def Version() -> None:
-    """Prints the version of the package."""
-
-    sys.stdout.write(__version__)
+@app.command("version", no_args_is_help=False)
+def Version():
+    sys.stdout.write(f"FileBackup v{__version__}\n")
 
 
 # ----------------------------------------------------------------------
