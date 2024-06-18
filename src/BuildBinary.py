@@ -33,7 +33,7 @@ def _GetVersionAndDocstring() -> tuple[str, str]:
 # ----------------------------------------------------------------------
 @cache
 def _GetEntryPoint() -> Path:
-    return PathEx.EnsureFile(Path(__file__).parent / _GetName() / "EntryPoint.py")
+    return PathEx.EnsureFile(Path(__file__).parent / _GetName() / "CommandLine" / "EntryPoint.py")
 
 
 # ----------------------------------------------------------------------

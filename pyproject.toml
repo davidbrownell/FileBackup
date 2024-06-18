@@ -43,7 +43,8 @@ classifiers = [
 ]
 
 dependencies = [
-    # TODO
+    "dbrownell_Common",
+    "paramiko ~= 3.4",
     "typer ~= 0.9"
 ]
 
@@ -70,7 +71,7 @@ Documentation = "https://github.com/davidbrownell/FileBackup"
 Repository = "https://github.com/davidbrownell/FileBackup"
 
 [project.scripts]
-FileBackup = "FileBackup:EntryPoint.app"
+FileBackup = "FileBackup.CommandLine:EntryPoint.app"
 
 # ----------------------------------------------------------------------
 # |
@@ -79,6 +80,16 @@ FileBackup = "FileBackup:EntryPoint.app"
 # ----------------------------------------------------------------------
 [tool.black]
 line-length = 100
+
+# ----------------------------------------------------------------------
+# |
+# |  coverage
+# |
+# ----------------------------------------------------------------------
+[tool.coverage.run]
+omit = [
+    "*/Impl/*",
+]
 
 # ----------------------------------------------------------------------
 # |

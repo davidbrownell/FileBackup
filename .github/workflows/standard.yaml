@@ -183,7 +183,7 @@ jobs:
     with:
       operating_system: ${{ matrix.os }}
       python_version: ${{ matrix.python_version }}
-      validation_command: FileBackup Version
+      validation_command: FileBackup version
 
 
 # ----------------------------------------------------------------------
@@ -239,4 +239,3 @@ jobs:
       PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
       MINISIGN_PRIVATE_KEY: ${{ secrets.MINISIGN_PRIVATE_KEY }}
-
