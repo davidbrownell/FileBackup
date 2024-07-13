@@ -22,17 +22,25 @@ description = "Tool for creating and restoring file system backups."
 license = { text = "MIT" }
 
 authors = [
-    { name = "David Brownell", email = "db@DavidBrownell.com" },
+    { name = "David Brownell", email = "github@DavidBrownell.com" },
 ]
 
 keywords = [
-    # TODO
+    "backup",
+    "mirror",
+    "offsite",
+    "restore",
 ]
 
 # https://pypi.org/classifiers/
 classifiers = [
-    # TODO
+    "Development Status :: 4 - Beta",  # TODO
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
@@ -40,6 +48,10 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Archiving :: Backup",
+    "Topic :: System :: Archiving :: Mirroring",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
 ]
 
 dependencies = [
