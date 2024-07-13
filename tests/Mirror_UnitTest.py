@@ -23,11 +23,10 @@ from unittest import mock
 
 import pytest
 
-from dbrownell_Common.Streams.DoneManager import DoneManager, Flags as DoneManagerFlags
+from dbrownell_Common.Streams.DoneManager import DoneManager
 from dbrownell_Common.TestHelpers.StreamTestHelpers import (
     GenerateDoneManagerAndContent,
     InitializeStreamCapabilities,
-    ScrubDuration,
 )
 
 from FileBackup.Mirror import *

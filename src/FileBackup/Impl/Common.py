@@ -358,8 +358,7 @@ def YieldDataStore(
             ),
         )
 
-        is_local_filesystem_override_value_for_testing = True
-        destination = destination[len("[nonlocal]") :]
+        is_local_filesystem_override_value_for_testing = False
 
     yield FileSystemDataStore(
         Path(destination),

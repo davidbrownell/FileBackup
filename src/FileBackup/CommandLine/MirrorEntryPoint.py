@@ -38,7 +38,7 @@ class NaturalOrderGrouper(TyperGroup):
     # pylint: disable=missing-class-docstring
     # ----------------------------------------------------------------------
     def list_commands(self, *args, **kwargs):  # pylint: disable=unused-argument
-        return self.commands.keys()
+        return self.commands.keys()  # pragma: no cover
 
 
 # ----------------------------------------------------------------------
@@ -153,7 +153,7 @@ def Validate(
         bool, CommandLineArguments.debug_option
     ] = CommandLineArguments.debug_option_default,
 ) -> None:
-    """Validates perviously mirrored content in the backup data store."""
+    """Validates previously mirrored content in the backup data store."""
 
     with DoneManager.CreateCommandLine(
         flags=DoneManagerFlags.Create(verbose=verbose, debug=debug),
