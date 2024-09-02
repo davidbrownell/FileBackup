@@ -1,9 +1,3 @@
-# ----------------------------------------------------------------------
-# |
-# |  Copyright (c) 2024 David Brownell
-# |  Distributed under the MIT License.
-# |
-# ----------------------------------------------------------------------
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 
 [build-system]
@@ -81,6 +75,7 @@ package = [
 Homepage = "https://github.com/davidbrownell/FileBackup"
 Documentation = "https://github.com/davidbrownell/FileBackup"
 Repository = "https://github.com/davidbrownell/FileBackup"
+
 
 [project.scripts]
 FileBackup = "FileBackup.CommandLine:EntryPoint.app"

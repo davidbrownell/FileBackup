@@ -1,9 +1,3 @@
-# ----------------------------------------------------------------------
-# |
-# |  Copyright (c) 2024 David Brownell
-# |  Distributed under the MIT License.
-# |
-# ----------------------------------------------------------------------
 """Build tasks for this python project."""
 
 import sys
