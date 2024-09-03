@@ -41,11 +41,11 @@ Download an executable for Linux, MacOS, or Windows to the the functionality pro
 2. Decompress the archive.
 
 #### Verifying Signed Executables
-Executables are signed and validated using [Minisign](https://jedisct1.github.io/minisign/). The public key used to verify the signature of the executable is `RWRklbWaX9KiNb8bzXIMVsGOyjIFbIlaY+ZSr8TBdcc5vcNLl1OKpqXE`.
+Executables are signed and validated using [Minisign](https://jedisct1.github.io/minisign/). The public key used to verify the signature of the executable is `RWRGhtynC5g0o03VuBcJ3iIJoPgHATuMbAI2Weu7ST993WeK9BTv1B+C`.
 
 To verify that the executable is valid, download the corresponding `.minisig` file [here](https://github.com/davidbrownell/FileBackup/releases/latest) and run this command, replacing `<filename>` with the name of the file to be verified:
 
-`docker run -i --rm -v .:/host jedisct1/minisign -V -P RWRklbWaX9KiNb8bzXIMVsGOyjIFbIlaY+ZSr8TBdcc5vcNLl1OKpqXE -m /host/<filename>`
+`docker run -i --rm -v .:/host jedisct1/minisign -V -P RWRGhtynC5g0o03VuBcJ3iIJoPgHATuMbAI2Weu7ST993WeK9BTv1B+C -m /host/<filename>`
 
 Instructions for installing [docker](https://docker.com) are available at https://docs.docker.com/engine/install/.
 
