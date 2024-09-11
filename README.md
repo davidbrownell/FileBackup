@@ -5,7 +5,7 @@
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/y/davidbrownell/FileBackup?color=dark-green)](https://github.com/davidbrownell/FileBackup/commits/main/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/FileBackup?color=dark-green)](https://pypi.org/project/FileBackup/)
 [![PyPI - Version](https://img.shields.io/pypi/v/FileBackup?color=dark-green)](https://pypi.org/project/FileBackup/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/FileBackup)](https://pypistats.org/packages/FileBackup)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/filebackup)](https://pypistats.org/packages/filebackup)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9069/badge)](https://www.bestpractices.dev/projects/9069)
 [![Code Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/davidbrownell/f15146b1b8fdc0a5d45ac0eb786a84f7/raw/FileBackup_coverage.json)](https://github.com/davidbrownell/FileBackup/actions)
 <!-- END: Exclude Package -->
