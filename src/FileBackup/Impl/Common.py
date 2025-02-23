@@ -22,7 +22,16 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import auto, Enum
 from pathlib import Path
-from typing import Any, Callable, cast, Iterable, Iterator, Optional, Pattern, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Iterable,
+    Iterator,
+    Optional,
+    Pattern,
+    TYPE_CHECKING,
+)
 from urllib import parse as urlparse
 
 from dbrownell_Common import ExecuteTasks  # type: ignore[import-untyped]
@@ -35,6 +44,7 @@ from FileBackup.DataStore.FastGlacierDataStore import FastGlacierDataStore
 from FileBackup.DataStore.FileSystemDataStore import FileSystemDataStore
 from FileBackup.DataStore.Interfaces.DataStore import DataStore, ItemType
 from FileBackup.DataStore.Interfaces.FileBasedDataStore import FileBasedDataStore
+from FileBackup.DataStore.S3BrowserDataStore import S3BrowserDataStore
 from FileBackup.DataStore.SFTPDataStore import SFTPDataStore, SSH_PORT
 
 if TYPE_CHECKING:
@@ -79,6 +89,22 @@ FAST_GLACIER_TEMPLATE_REGEX = re.compile(
         [sep]                               )\/(?#
         Posix Working Dir                   )(?P<working_dir>.+)(?#
     Working Dir End                         ))?(?#
+    End                                     )$(?#
+    )""",
+)
+
+
+S3_BROWSER_TEMPLATE_REGEX = re.compile(
+    r"""(?#
+    Start                                   )^(?#
+    Prefix                                  )s3_browser:\/\/(?#
+    Account Name                            )(?P<account_name>[^@]+)(?#
+    [sep]                                   )@(?#
+    Bucket Name                             )(?P<bucket_name>[^\/]+)(?#
+    Working Dir Begin                       )(?:(?#
+        Posix Working Dir                   )(?P<working_dir>.+)(?#
+    Working Dir End                         ))?(?#
+    End                                     )$(?#
     )""",
 )
 
@@ -288,6 +314,17 @@ def GetDestinationHelp() -> str:
                 fast_glacier://MyFastGlacierAccount@us-west-2
                 fast_glacier://MyFastGlacierAccount@us-west-2/Glacier/Dir
 
+        S3 Browser
+        ----------
+        Write content using the S3 Browser application (https://s3browser.com/).
+
+            Format:
+                s3_browser://<s3_browser_account_name>@<bucket_name>[/<working_dir>]
+
+            Examples:
+                s3_browser://MyS3BrowserAccount@MyBucket
+                s3_browser://MyS3BrowserAccount@MyBucket/A/Working/Dir
+
         """,
     ).replace("\n", "\n\n")
 
@@ -334,6 +371,16 @@ def YieldDataStore(
                 fast_glacier_match.group("account_name"),
                 fast_glacier_match.group("aws_region"),
                 Path(fast_glacier_match.group("working_dir") or ""),
+            )
+            return
+
+        # S3 Browser
+        s3_browser_match = S3_BROWSER_TEMPLATE_REGEX.match(destination)
+        if s3_browser_match:
+            yield S3BrowserDataStore(
+                s3_browser_match.group("account_name"),
+                s3_browser_match.group("bucket_name"),
+                Path(s3_browser_match.group("working_dir") or ""),
             )
             return
 

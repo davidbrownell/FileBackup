@@ -1,17 +1,17 @@
 # ----------------------------------------------------------------------
 # |
-# |  FastGlacierDataStore.py
+# |  S3BrowserDataStore.py
 # |
 # |  David Brownell <db@DavidBrownell.com>
-# |      2024-06-10 14:32:10
+# |      2025-02-23 14:08:12
 # |
 # ----------------------------------------------------------------------
 # |
-# |  Copyright David Brownell 2024
+# |  Copyright David Brownell 2025
 # |  Distributed under the MIT License.
 # |
 # ----------------------------------------------------------------------
-"""Contains the FastGlacierDataStore object"""
+"""Contains the S3BrowserDataStore object"""
 
 from pathlib import Path
 from typing import Optional
@@ -24,22 +24,22 @@ from FileBackup.DataStore.Interfaces.BulkStorageDataStore import BulkStorageData
 
 
 # ----------------------------------------------------------------------
-class FastGlacierDataStore(BulkStorageDataStore):
-    """Data store that uses the Fast Glacier application (https://fastglacier.com/)"""
+class S3BrowserDataStore(BulkStorageDataStore):
+    """Data store that uses the S3 Browser application (https://s3browser.com/)"""
 
     # ----------------------------------------------------------------------
     def __init__(
         self,
         account_name: str,
-        aws_region: str,
-        glacier_dir: Optional[Path],
-    ):
-        super(FastGlacierDataStore, self).__init__()
+        bucket_name: str,
+        s3_dir: Optional[Path],
+    ) -> None:
+        super(S3BrowserDataStore, self).__init__()
 
         self.account_name = account_name
-        self.aws_region = aws_region
+        self.bucket_name = bucket_name
 
-        self._glacier_dir = glacier_dir or Path()
+        self._s3_dir = self.bucket_name / (s3_dir or Path())
 
         self._validated_command_line = False
 
@@ -57,23 +57,23 @@ class FastGlacierDataStore(BulkStorageDataStore):
     ) -> None:
         if self._validated_command_line is False:
             with dm.Nested(
-                "Validating Fast Glacier on the command line...",
+                "Validating S3 Browser on the command line...",
                 suffix="\n",
             ) as check_dm:
-                result = SubprocessEx.Run("glacier-con --version")
+                result = SubprocessEx.Run("s3browser-cli license show")
 
                 check_dm.WriteVerbose(result.output)
 
-                if result.returncode != 0 and "glacier-con.exe upload" not in result.output:
+                if result.returncode != 0:
                     check_dm.WriteError(
-                        "Fast Glacier is not available; please make sure it exists in the path and run the script again.\n"
+                        "S3 Browser is not available; please make sure it exists in the path and run the script again.\n"
                     )
                     return
 
                 self._validated_command_line = True
 
-        with dm.Nested("Uploading to Fast Glacier...") as upload_dm:
-            command_line = f'glacier-con upload "{self.account_name}" "{local_path / "*"}" "{self.aws_region}" "{self._glacier_dir.as_posix()}"'
+        with dm.Nested("Uploading via S3 Browser...") as upload_dm:
+            command_line = f's3browser-cli file upload "{self.account_name}" "{local_path / "*"}" "{self._s3_dir.as_posix()}"'
 
             upload_dm.WriteVerbose(f"Command Line: {command_line}\n\n")
 
