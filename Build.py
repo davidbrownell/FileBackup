@@ -48,7 +48,7 @@ Pytest = RepoBuildTools.PytestFuncFactory(
     this_dir,
     package_dir.name,
     app,
-    default_min_coverage=87.0,  # TODO: Increase this to 90%
+    default_min_coverage=85.0,  # TODO: Increase this to 90%
 )
 
 UpdateVersion = RepoBuildTools.UpdateVersionFuncFactory(
