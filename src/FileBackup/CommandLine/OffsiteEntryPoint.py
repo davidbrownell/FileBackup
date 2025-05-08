@@ -92,18 +92,12 @@ def Execute(
         ),
     ] = False,
     ssd: Annotated[bool, CommandLineArguments.ssd_option] = CommandLineArguments.ssd_option_default,
-    force: Annotated[
-        bool, CommandLineArguments.force_option
-    ] = CommandLineArguments.force_option_default,
+    force: Annotated[bool, CommandLineArguments.force_option] = CommandLineArguments.force_option_default,
     verbose: Annotated[
         bool, CommandLineArguments.verbose_option
     ] = CommandLineArguments.verbose_option_default,
-    quiet: Annotated[
-        bool, CommandLineArguments.quiet_option
-    ] = CommandLineArguments.quiet_option_default,
-    debug: Annotated[
-        bool, CommandLineArguments.debug_option
-    ] = CommandLineArguments.debug_option_default,
+    quiet: Annotated[bool, CommandLineArguments.quiet_option] = CommandLineArguments.quiet_option_default,
+    debug: Annotated[bool, CommandLineArguments.debug_option] = CommandLineArguments.debug_option_default,
     working_dir: Annotated[
         Optional[Path],
         typer.Option(
@@ -123,9 +117,7 @@ def Execute(
     ] = Offsite.DEFAULT_ARCHIVE_VOLUME_SIZE,
     ignore_pending_snapshot: Annotated[
         bool,
-        typer.Option(
-            "--ignore-pending-snapshot", help="Disable the pending warning snapshot and continue."
-        ),
+        typer.Option("--ignore-pending-snapshot", help="Disable the pending warning snapshot and continue."),
     ] = False,
     file_include_params: Annotated[
         list[str],
@@ -181,9 +173,7 @@ def Commit(
     verbose: Annotated[
         bool, CommandLineArguments.verbose_option
     ] = CommandLineArguments.verbose_option_default,
-    debug: Annotated[
-        bool, CommandLineArguments.debug_option
-    ] = CommandLineArguments.debug_option_default,
+    debug: Annotated[bool, CommandLineArguments.debug_option] = CommandLineArguments.debug_option_default,
 ) -> None:
     """Commits a pending snapshot after the changes have been transferred to an offsite data store."""
 
@@ -240,12 +230,8 @@ def Restore(  # pylint: disable=dangerous-default-value
     verbose: Annotated[
         bool, CommandLineArguments.verbose_option
     ] = CommandLineArguments.verbose_option_default,
-    quiet: Annotated[
-        bool, CommandLineArguments.quiet_option
-    ] = CommandLineArguments.quiet_option_default,
-    debug: Annotated[
-        bool, CommandLineArguments.debug_option
-    ] = CommandLineArguments.debug_option_default,
+    quiet: Annotated[bool, CommandLineArguments.quiet_option] = CommandLineArguments.quiet_option_default,
+    debug: Annotated[bool, CommandLineArguments.debug_option] = CommandLineArguments.debug_option_default,
     working_dir: Annotated[
         Optional[Path],
         typer.Option(
@@ -323,9 +309,7 @@ def _ResolveWorkingDir(
                 else:
                     assert False, dm.result  # pragma: no cover
 
-                dm.WriteInfo(
-                    f"The temporary directory '{working_dir}' was preserved due to {type_desc}.\n"
-                )
+                dm.WriteInfo(f"The temporary directory '{working_dir}' was preserved due to {type_desc}.\n")
 
 
 # ----------------------------------------------------------------------

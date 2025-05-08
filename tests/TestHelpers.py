@@ -49,9 +49,7 @@ def GetOutputPath(
 ) -> Path:
     if os.name == "nt":
         result = (
-            destination_content_dir
-            / working_dir.parts[0].replace(":", "_")
-            / Path(*working_dir.parts[1:])
+            destination_content_dir / working_dir.parts[0].replace(":", "_") / Path(*working_dir.parts[1:])
         )
     else:
         assert working_dir.parts[0] == "/", working_dir.parts
@@ -96,8 +94,7 @@ def SetComparison(
     None,
 ]:
     that_lookup: dict[PurePath, FileInfo] = {
-        PathEx.CreateRelativePath(that_root, that_value.path): that_value
-        for that_value in that_values
+        PathEx.CreateRelativePath(that_root, that_value.path): that_value for that_value in that_values
     }
 
     for this_value in this_values:

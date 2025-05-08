@@ -29,9 +29,7 @@ def ToRegex(
         try:
             expressions.append(re.compile("^{}$".format(value)))
         except re.error as ex:
-            raise typer.BadParameter(
-                "The regular expression '{}' is not valid ({}).".format(value, ex)
-            )
+            raise typer.BadParameter("The regular expression '{}' is not valid ({}).".format(value, ex))
 
     return expressions
 

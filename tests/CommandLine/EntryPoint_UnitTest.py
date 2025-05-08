@@ -37,7 +37,6 @@ _this_file = Path(__file__)
 
 @pytest.fixture(InitializeStreamCapabilities(), scope="session", autouse=True)
 
-
 # ----------------------------------------------------------------------
 def test_Version():
     result = CliRunner().invoke(app, ["version"])
@@ -225,9 +224,7 @@ class TestMirror:
 
             assert result.exit_code == 0
 
-            assert (
-                "Validates previously mirrored content in the backup data store." in result.output
-            )
+            assert "Validates previously mirrored content in the backup data store." in result.output
             assert "Data Store Destinations" in result.output
 
     # ----------------------------------------------------------------------
@@ -434,9 +431,7 @@ class TestOffsite:
         # ----------------------------------------------------------------------
         def test_Standard(self, tmp_path):
             with patch("FileBackup.Offsite.Restore") as restore:
-                result = CliRunner().invoke(
-                    app, ["offsite", "restore", "BackupName", str(tmp_path)]
-                )
+                result = CliRunner().invoke(app, ["offsite", "restore", "BackupName", str(tmp_path)])
 
                 assert result.exit_code == 0
 
