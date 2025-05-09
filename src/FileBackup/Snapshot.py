@@ -94,9 +94,7 @@ class Snapshot:
             )
 
             assert (isinstance(self.hash_value, DirHashPlaceholder) and self.file_size is None) or (
-                isinstance(self.hash_value, str)
-                and self.file_size is not None
-                and self.file_size >= 0
+                isinstance(self.hash_value, str) and self.file_size is not None and self.file_size >= 0
             ), (self.hash_value, self.file_size)
 
             assert not self.children or self.is_dir
@@ -179,9 +177,7 @@ class Snapshot:
             result = cls(name, parent, hash_value, file_size)
 
             if result.is_dir:
-                result.children = {
-                    k: cls.FromJson(k, result, v) for k, v in value["children"].items()
-                }
+                result.children = {k: cls.FromJson(k, result, v) for k, v in value["children"].items()}
 
             return result
 
@@ -343,9 +339,7 @@ class Snapshot:
                 new_node = node.children.get(part, None)
 
                 if new_node is None:
-                    new_node = self.__class__(
-                        part, node, DirHashPlaceholder(explicitly_added=False), None
-                    )
+                    new_node = self.__class__(part, node, DirHashPlaceholder(explicitly_added=False), None)
                     node.children[part] = new_node
 
                 node = new_node
@@ -427,9 +421,7 @@ class Snapshot:
         def OnNestedExit():
             # We need to do some extra work because inflect doesn't work when we need a word between
             # the number and plural where the singular form of the plural ends in 'y'.
-            num_empty_dirs = sum(
-                len(input_info.empty_dirs) for input_info in all_input_infos.values()
-            )
+            num_empty_dirs = sum(len(input_info.empty_dirs) for input_info in all_input_infos.values())
 
             return "{} found, {} empty {} found".format(
                 inflect.no(
@@ -460,9 +452,7 @@ class Snapshot:
                     filenames.append(input_item)
 
                 elif input_item_type == ItemType.Dir:
-                    for this_root, these_directories, these_filenames in data_store.Walk(
-                        input_item
-                    ):
+                    for this_root, these_directories, these_filenames in data_store.Walk(input_item):
                         if not these_directories and not these_filenames:
                             empty_dirs.append(this_root)
                             continue
@@ -471,9 +461,7 @@ class Snapshot:
                             fullpath = this_root / this_filename
 
                             if data_store.GetItemType(fullpath) != ItemType.File:
-                                status.OnInfo(
-                                    f"The file '{fullpath}' is not a supported item type."
-                                )
+                                status.OnInfo(f"The file '{fullpath}' is not a supported item type.")
                                 continue
 
                             if not filter_filename_func(fullpath):
@@ -489,9 +477,7 @@ class Snapshot:
                 else:
                     # By default, FileSystemDataStore and SFTPDataStore will not get here, as
                     # the will not traverse directory symlinks.
-                    raise Exception(
-                        f"'{input_item}' is not a supported item type."
-                    )  # pragma: no cover
+                    raise Exception(f"'{input_item}' is not a supported item type.")  # pragma: no cover
 
                 short_desc = "{} found".format(inflect.no("file", len(filenames)))
 
@@ -529,8 +515,7 @@ class Snapshot:
             return cls(Snapshot.Node(None, None, DirHashPlaceholder(explicitly_added=False), None))
 
         with dm.Nested(
-            "\n"
-            + ("Calculating hashes..." if calculate_hashes else "Retrieving file information..."),
+            "\n" + ("Calculating hashes..." if calculate_hashes else "Retrieving file information..."),
         ) as hashes_dm:
             # ----------------------------------------------------------------------
             def PrepareTask(
@@ -651,9 +636,7 @@ class Snapshot:
                     *Progress.get_default_columns(),
                     TimeElapsedColumn(),
                     "{task.fields[status]}",
-                    console=Capabilities.Get(stdout_context.stream).CreateRichConsole(
-                        stdout_context.stream
-                    ),
+                    console=Capabilities.Get(stdout_context.stream).CreateRichConsole(stdout_context.stream),
                     transient=True,
                 ) as progress_bar:
                     total_progress_id = progress_bar.add_task(
@@ -674,9 +657,7 @@ class Snapshot:
                             progress_bar.update(total_progress_id, advance=len(chunk))
 
             try:
-                return Snapshot(
-                    Snapshot.Node.FromJson(None, None, json.loads(content.decode("UTF-8")))
-                )
+                return Snapshot(Snapshot.Node.FromJson(None, None, json.loads(content.decode("UTF-8"))))
             except KeyError as ex:
                 raise Exception(f"The content at '{snapshot_filename}' is not valid.") from ex
 
@@ -704,8 +685,12 @@ class Snapshot:
         """Enumerates the differences between two Snapshots"""
 
         if compare_hashes:
-            compare_func = lambda a, b: a.hash_value == b.hash_value
-        else:
-            compare_func = lambda a, b: a.file_size == b.file_size
 
-        yield from self.node.CreateDiffs(other.node, compare_func)[0]
+            def CompareFunc(a, b) -> bool:
+                return a.hash_value == b.hash_value
+        else:
+
+            def CompareFunc(a, b) -> bool:
+                return a.file_size == b.file_size
+
+        yield from self.node.CreateDiffs(other.node, CompareFunc)[0]

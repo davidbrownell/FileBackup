@@ -155,11 +155,7 @@ class DiffResult:
     # ----------------------------------------------------------------------
     def __post_init__(self):
         assert (
-            (
-                self.operation == DiffOperation.add
-                and self.this_hash is not None
-                and self.other_hash is None
-            )
+            (self.operation == DiffOperation.add and self.this_hash is not None and self.other_hash is None)
             or (
                 self.operation == DiffOperation.modify
                 and self.this_hash is not None
@@ -428,14 +424,10 @@ def CreateFilterFunc(
     ) -> bool:
         filename_str = filename.as_posix()
 
-        if file_excludes is not None and any(
-            exclude.search(filename_str) for exclude in file_excludes
-        ):
+        if file_excludes is not None and any(exclude.search(filename_str) for exclude in file_excludes):
             return False
 
-        if file_includes is not None and not any(
-            include.search(filename_str) for include in file_includes
-        ):
+        if file_includes is not None and not any(include.search(filename_str) for include in file_includes):
             return False
 
         return True
@@ -497,11 +489,7 @@ def CalculateDiffs(
                         stream.write(
                             "  {}) [{}] {}\n".format(
                                 diff_index + 1,
-                                (
-                                    "FILE"
-                                    if diff.path.is_file()
-                                    else "DIR " if diff.path.is_dir() else "????"
-                                ),
+                                ("FILE" if diff.path.is_file() else "DIR " if diff.path.is_dir() else "????"),
                                 (
                                     diff.path
                                     if dm.capabilities.is_headless
@@ -566,9 +554,7 @@ def WriteFile(
     dest_filename: Path,
     status_func: Callable[[int], None],
 ) -> None:
-    temp_dest_filename = (
-        dest_filename.parent / f"{dest_filename.stem}.__temp__{dest_filename.suffix}"
-    )
+    temp_dest_filename = dest_filename.parent / f"{dest_filename.stem}.__temp__{dest_filename.suffix}"
 
     with source_filename.open("rb") as source:
         data_store.MakeDirs(temp_dest_filename.parent)
@@ -667,9 +653,7 @@ def CopyLocalContent(
                     destination_data_store,
                     diff.path,
                     dest_filename,
-                    lambda bytes_transferred: cast(
-                        None, status.OnProgress(bytes_transferred, None)
-                    ),
+                    lambda bytes_transferred: cast(None, status.OnProgress(bytes_transferred, None)),
                 )
             else:
                 assert False, diff.path  # pragma: no cover

@@ -118,9 +118,7 @@ def Backup(
             )
         else:
             with dm.Nested("\nReading the destination snapshot...") as destination_dm:
-                destination_snapshot = Snapshot.LoadPersisted(
-                    destination_dm, destination_data_store
-                )
+                destination_snapshot = Snapshot.LoadPersisted(destination_dm, destination_data_store)
 
                 if destination_dm.result != 0:
                     return
@@ -151,9 +149,7 @@ def Backup(
         # Persist all content
         with dm.Nested("\nPersisting content...") as persist_dm:
             # Transfer the snapshot
-            pending_snapshot_filename = Path(
-                Snapshot.PERSISTED_FILE_NAME + Common.PENDING_COMMIT_EXTENSION
-            )
+            pending_snapshot_filename = Path(Snapshot.PERSISTED_FILE_NAME + Common.PENDING_COMMIT_EXTENSION)
 
             temp_directory = PathEx.CreateTempDirectory()
 
@@ -268,9 +264,7 @@ def Backup(
                                 ],
                                 Remove,
                                 quiet=quiet,
-                                max_num_threads=(
-                                    None if destination_data_store.ExecuteInParallel() else 1
-                                ),
+                                max_num_threads=(None if destination_data_store.ExecuteInParallel() else 1),
                                 refresh_per_second=Common.EXECUTE_TASKS_REFRESH_PER_SECOND,
                             ),
                         )
@@ -314,9 +308,7 @@ def Backup(
                             lambda fullpath, item_type: (
                                 cast(FileBasedDataStore, destination_data_store).RemoveDir(fullpath)
                                 if item_type == Common.ItemType.Dir
-                                else cast(FileBasedDataStore, destination_data_store).RemoveFile(
-                                    fullpath
-                                )
+                                else cast(FileBasedDataStore, destination_data_store).RemoveFile(fullpath)
                             ),
                         ),
                     ]:
@@ -349,9 +341,7 @@ def Backup(
                                 ],
                                 Commit,
                                 quiet=quiet,
-                                max_num_threads=(
-                                    None if destination_data_store.ExecuteInParallel() else 1
-                                ),
+                                max_num_threads=(None if destination_data_store.ExecuteInParallel() else 1),
                                 refresh_per_second=Common.EXECUTE_TASKS_REFRESH_PER_SECOND,
                             )
 
@@ -431,14 +421,10 @@ def Validate(
             # the backup with the values of the current snapshot are based on what is on the file
             # system. Convert the data in the mirror snapshot so it matches the values in the
             # current snapshot before we compare the contents of each.
-            new_root = Snapshot.Node(
-                None, None, Common.DirHashPlaceholder(explicitly_added=False), None
-            )
+            new_root = Snapshot.Node(None, None, Common.DirHashPlaceholder(explicitly_added=False), None)
 
             for node in mirrored_snapshot.node.Enum():
-                destination_path = destination_data_store.SnapshotFilenameToDestinationName(
-                    node.fullpath
-                )
+                destination_path = destination_data_store.SnapshotFilenameToDestinationName(node.fullpath)
 
                 if node.is_dir:
                     if not node.children:

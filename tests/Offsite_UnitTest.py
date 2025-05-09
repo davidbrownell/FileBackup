@@ -153,9 +153,7 @@ class TestBackup:
     # ----------------------------------------------------------------------
     @pytest.mark.parametrize("encryption_password", [None, str(uuid.uuid4())])
     @pytest.mark.parametrize("compress", [False, True])
-    def test_AddMultipleFilesSameContent(
-        self, _working_dir, tmp_path_factory, compress, encryption_password
-    ):
+    def test_AddMultipleFilesSameContent(self, _working_dir, tmp_path_factory, compress, encryption_password):
         with _YieldInitializedBackupHelper(
             tmp_path_factory, _working_dir, compress, encryption_password
         ) as helper:
@@ -271,9 +269,7 @@ class TestBackup:
     # ----------------------------------------------------------------------
     @pytest.mark.parametrize("encryption_password", [None, str(uuid.uuid4())])
     @pytest.mark.parametrize("compress", [False, True])
-    def test_RemoveMultipleFile(
-        self, _working_dir, tmp_path_factory, compress, encryption_password
-    ):
+    def test_RemoveMultipleFile(self, _working_dir, tmp_path_factory, compress, encryption_password):
         with _YieldInitializedBackupHelper(
             tmp_path_factory, _working_dir, compress, encryption_password
         ) as helper:
@@ -330,9 +326,7 @@ class TestBackup:
     # ----------------------------------------------------------------------
     @pytest.mark.parametrize("encryption_password", [None, str(uuid.uuid4())])
     @pytest.mark.parametrize("compress", [False, True])
-    def test_RemoveMultipleDirs(
-        self, _working_dir, tmp_path_factory, compress, encryption_password
-    ):
+    def test_RemoveMultipleDirs(self, _working_dir, tmp_path_factory, compress, encryption_password):
         with _YieldInitializedBackupHelper(
             tmp_path_factory, _working_dir, compress, encryption_password
         ) as helper:
@@ -413,8 +407,7 @@ class TestBackup:
             for backup_ctr in range(num_deltas):
                 for file_ctr in range(backup_ctr + 1):
                     with (
-                        _working_dir
-                        / "NewFile-MultipleChanges-{}-{}.txt".format(backup_ctr, file_ctr)
+                        _working_dir / "NewFile-MultipleChanges-{}-{}.txt".format(backup_ctr, file_ctr)
                     ).open("w") as f:
                         f.write("{}-{}\n{}\n".format(backup_ctr, file_ctr, uuid.uuid4()))
 
@@ -467,10 +460,8 @@ class TestBackup:
             output = helper.ExecuteBackup(_working_dir, False, None, provide_destination=False)
             output = _ScrubDynamicContent(output)
 
-            assert (
-                output
-                == textwrap.dedent(
-                    """\
+            assert output == textwrap.dedent(
+                """\
                 Heading...
                   Creating the local snapshot...
                     Discovering files...
@@ -513,11 +504,10 @@ class TestBackup:
 
                 DONE! (0, <scrubbed duration>)
                 """,
-                ).format(
-                    snapshot_dir=helper.snapshot_dir,
-                    backup_working_dir=helper.backup_working_dir,
-                    sep=os.path.sep,
-                )
+            ).format(
+                snapshot_dir=helper.snapshot_dir,
+                backup_working_dir=helper.backup_working_dir,
+                sep=os.path.sep,
             )
 
             snapshot_filenames: list[Path] = [
@@ -530,10 +520,8 @@ class TestBackup:
             # Backup w/pending
             output = helper.ExecuteBackup(_working_dir, False, None)
 
-            assert (
-                output
-                == textwrap.dedent(
-                    """\
+            assert output == textwrap.dedent(
+                """\
                 Heading...
 
                   ERROR: A pending snapshot exists for the backup '{}'; this snapshot should be committed before creating updates
@@ -547,8 +535,7 @@ class TestBackup:
 
                 DONE! (-1, <scrubbed duration>)
                 """,
-                ).format(helper.backup_name)
-            )
+            ).format(helper.backup_name)
 
             # With ignore pending snapshot
             helper.ExecuteBackup(_working_dir, False, None, ignore_pending_snapshot=True)
@@ -576,10 +563,8 @@ class TestBackup:
             output = helper.ExecuteBackup(_working_dir, False, None, provide_destination=False)
             output = _ScrubDynamicContent(output)
 
-            assert (
-                output
-                == textwrap.dedent(
-                    """\
+            assert output == textwrap.dedent(
+                """\
                 Heading...
                   Creating the local snapshot...
                     Discovering files...
@@ -624,11 +609,10 @@ class TestBackup:
 
                 DONE! (0, <scrubbed duration>)
                 """,
-                ).format(
-                    backup_working_dir=helper.backup_working_dir,
-                    snapshot_dir=helper.snapshot_dir,
-                    sep=os.path.sep,
-                )
+            ).format(
+                backup_working_dir=helper.backup_working_dir,
+                snapshot_dir=helper.snapshot_dir,
+                sep=os.path.sep,
             )
 
             snapshot_filenames: list[Path] = [
@@ -739,10 +723,8 @@ class TestBackup:
                 else:
                     assert False, result  # pragma: no cover
 
-                assert (
-                    sink
-                    == textwrap.dedent(
-                        """\
+                assert sink == textwrap.dedent(
+                    """\
                     Heading...
                       Creating the local snapshot...
                         Discovering files...
@@ -764,12 +746,11 @@ class TestBackup:
                       INFO: The temporary directory '{backup_working_dir}{sep}<Folder>' was preserved due to {desc}.
                     DONE! ({result}, <scrubbed duration>)
                     """,
-                    ).format(
-                        backup_working_dir=helper.backup_working_dir,
-                        result=result,
-                        desc=desc,
-                        sep=os.path.sep,
-                    )
+                ).format(
+                    backup_working_dir=helper.backup_working_dir,
+                    result=result,
+                    desc=desc,
+                    sep=os.path.sep,
                 )
 
 
@@ -944,9 +925,7 @@ class TestRestore(object):
 
     # ----------------------------------------------------------------------
     def test_OverwriteError(self, _working_dir, tmp_path_factory):
-        with _YieldInitializedBackupHelper(
-            tmp_path_factory, _working_dir, False, None
-        ) as backup_helper:
+        with _YieldInitializedBackupHelper(tmp_path_factory, _working_dir, False, None) as backup_helper:
             restore_helper = _RestoreHelper.Create(
                 _working_dir,
                 tmp_path_factory,
@@ -964,10 +943,8 @@ class TestRestore(object):
 
             output = _ScrubDynamicContent(output)
 
-            assert (
-                output
-                == textwrap.dedent(
-                    """\
+            assert output == textwrap.dedent(
+                """\
                 Heading...
                   Processing file content...
                     Processing (1 item)...DONE! (0, <scrubbed duration>, 1 item succeeded, no items with errors, no items with warnings)
@@ -1003,21 +980,18 @@ class TestRestore(object):
                   DONE! (-1, <scrubbed duration>)
                 DONE! (-1, <scrubbed duration>)
                 """,
-                ).format(
-                    working_dir=_working_dir,
-                    working_dir_sep_delta="-" * len(str(_working_dir)),
-                    working_dir_whitespace_delta=" " * len(str(_working_dir)),
-                    restore_dir=_working_dir.as_posix(),
-                    restore_dir_sep_delta="-" * len(_working_dir.as_posix()),
-                    sep=os.path.sep,
-                )
+            ).format(
+                working_dir=_working_dir,
+                working_dir_sep_delta="-" * len(str(_working_dir)),
+                working_dir_whitespace_delta=" " * len(str(_working_dir)),
+                restore_dir=_working_dir.as_posix(),
+                restore_dir_sep_delta="-" * len(_working_dir.as_posix()),
+                sep=os.path.sep,
             )
 
     # ----------------------------------------------------------------------
     def test_Overwrite(self, _working_dir, tmp_path_factory):
-        with _YieldInitializedBackupHelper(
-            tmp_path_factory, _working_dir, False, None
-        ) as backup_helper:
+        with _YieldInitializedBackupHelper(tmp_path_factory, _working_dir, False, None) as backup_helper:
             # Remove a file to show that things have been restored as expected
             path_info = _PathInfo.Create(_working_dir)
 
@@ -1055,9 +1029,7 @@ class TestRestore(object):
 
     # ----------------------------------------------------------------------
     def test_DryRun(self, _working_dir, tmp_path_factory):
-        with _YieldInitializedBackupHelper(
-            tmp_path_factory, _working_dir, False, None
-        ) as backup_helper:
+        with _YieldInitializedBackupHelper(tmp_path_factory, _working_dir, False, None) as backup_helper:
             # Remove a file to show that things are not restored
             path_info = _PathInfo.Create(_working_dir)
 
@@ -1097,10 +1069,8 @@ class TestRestore(object):
             assert len(path_info.filenames) == 8
             assert len(path_info.empty_dirs) == 0
 
-            assert (
-                output
-                == textwrap.dedent(
-                    """\
+            assert output == textwrap.dedent(
+                """\
                 Heading...
                   Processing file content...
                     Processing (1 item)...DONE! (0, <scrubbed duration>, 1 item succeeded, no items with errors, no items with warnings)
@@ -1132,14 +1102,13 @@ class TestRestore(object):
                   DONE! (0, <scrubbed duration>)
                 DONE! (0, <scrubbed duration>)
                 """,
-                ).format(
-                    working_dir=_working_dir,
-                    working_dir_sep_delta="-" * len(str(_working_dir)),
-                    working_dir_whitespace_delta=" " * len(str(_working_dir)),
-                    restore_dir=_working_dir.as_posix(),
-                    restore_dir_sep_delta="-" * len(_working_dir.as_posix()),
-                    sep=os.path.sep,
-                )
+            ).format(
+                working_dir=_working_dir,
+                working_dir_sep_delta="-" * len(str(_working_dir)),
+                working_dir_whitespace_delta=" " * len(str(_working_dir)),
+                restore_dir=_working_dir.as_posix(),
+                restore_dir_sep_delta="-" * len(_working_dir.as_posix()),
+                sep=os.path.sep,
             )
 
 

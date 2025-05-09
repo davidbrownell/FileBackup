@@ -82,8 +82,7 @@ class SnapshotFilenames:
         return cls(
             backup_name,
             snapshot_filename,
-            snapshot_filename.parent
-            / f"{snapshot_filename.stem}.__pending__{snapshot_filename.suffix}",
+            snapshot_filename.parent / f"{snapshot_filename.stem}.__pending__{snapshot_filename.suffix}",
         )
 
 
@@ -331,9 +330,7 @@ def Backup(
                                     file_content_data_store,
                                     diff.path,
                                     dest_filename,
-                                    lambda bytes_written: cast(
-                                        None, status.OnProgress(bytes_written, None)
-                                    ),
+                                    lambda bytes_written: cast(None, status.OnProgress(bytes_written, None)),
                                 )
 
                                 return dest_filename
@@ -351,15 +348,10 @@ def Backup(
                         ExecuteTasks.TransformTasksEx(
                             preserve_dm,
                             "Processing",
-                            [
-                                ExecuteTasks.TaskData(str(diff.path), diff)
-                                for diff in diffs_to_process
-                            ],
+                            [ExecuteTasks.TaskData(str(diff.path), diff) for diff in diffs_to_process],
                             PrepareTask,
                             quiet=quiet,
-                            max_num_threads=(
-                                None if file_content_data_store.ExecuteInParallel() else 1
-                            ),
+                            max_num_threads=(None if file_content_data_store.ExecuteInParallel() else 1),
                             refresh_per_second=Common.EXECUTE_TASKS_REFRESH_PER_SECOND,
                         )
 
@@ -436,11 +428,11 @@ def Backup(
                 ) as validate_dm:
                     assert zip_binary is not None
 
-                    command_line = f'{zip_binary} t "{file_content_root / ARCHIVE_FILENAME}.001"{encryption_arg}'
-
-                    validate_dm.WriteVerbose(
-                        f"Command Line: {_ScrubZipCommandLine(command_line)}\n\n"
+                    command_line = (
+                        f'{zip_binary} t "{file_content_root / ARCHIVE_FILENAME}.001"{encryption_arg}'
                     )
+
+                    validate_dm.WriteVerbose(f"Command Line: {_ScrubZipCommandLine(command_line)}\n\n")
 
                     with validate_dm.YieldStream() as stream:
                         validate_dm.result = SubprocessEx.Stream(command_line, stream)
@@ -639,9 +631,7 @@ def Restore(
                     for directory in directories:
                         match = dir_regex.match(directory)
                         if not match:
-                            preprocess_dm.WriteError(
-                                f"'{directory}' is not a recognized directory name.\n"
-                            )
+                            preprocess_dm.WriteError(f"'{directory}' is not a recognized directory name.\n")
                             return
 
                         offsite_directories.setdefault(directory, []).append(
@@ -774,17 +764,13 @@ def Restore(
                                         dest: Path,
                                     ) -> None:
                                         dest /= source.name
-                                        os.symlink(
-                                            source, dest, target_is_directory=source.is_dir()
-                                        )
+                                        os.symlink(source, dest, target_is_directory=source.is_dir())
 
                                     # ----------------------------------------------------------------------
 
                                     func = CreateSymLink
 
-                                temp_dest_dir = destination_dir.parent / (
-                                    destination_dir.name + "__temp__"
-                                )
+                                temp_dest_dir = destination_dir.parent / (destination_dir.name + "__temp__")
 
                                 shutil.rmtree(temp_dest_dir, ignore_errors=True)
                                 temp_dest_dir.mkdir(parents=True)
@@ -813,27 +799,22 @@ def Restore(
 
                 # ----------------------------------------------------------------------
 
-                directory_working_dirs: list[Path | None | Exception] = (
-                    ExecuteTasks.TransformTasksEx(
-                        preprocess_dm,
-                        "Processing",
-                        [
-                            ExecuteTasks.TaskData(str(directory), directory)
-                            for directory in directories
-                        ],
-                        PrepareTask,
-                        quiet=quiet,
-                        max_num_threads=None if ssd and data_store.ExecuteInParallel() else 1,
-                        refresh_per_second=Common.EXECUTE_TASKS_REFRESH_PER_SECOND,
-                    )
+                directory_working_dirs: list[Path | None | Exception] = ExecuteTasks.TransformTasksEx(
+                    preprocess_dm,
+                    "Processing",
+                    [ExecuteTasks.TaskData(str(directory), directory) for directory in directories],
+                    PrepareTask,
+                    quiet=quiet,
+                    max_num_threads=None if ssd and data_store.ExecuteInParallel() else 1,
+                    refresh_per_second=Common.EXECUTE_TASKS_REFRESH_PER_SECOND,
                 )
 
                 if preprocess_dm.result != 0:
                     return
 
-                assert all(
-                    isinstance(working_dir, Path) for working_dir in directory_working_dirs
-                ), directory_working_dirs
+                assert all(isinstance(working_dir, Path) for working_dir in directory_working_dirs), (
+                    directory_working_dirs
+                )
 
                 with preprocess_dm.Nested("Staging working content...") as stage_dm:
                     # ----------------------------------------------------------------------
@@ -864,9 +845,7 @@ def Restore(
 
                         with stage_dm.Nested(
                             f"Processing '{directory}' ({index + 1} of {len(directories)})...",
-                            lambda: "{} added".format(
-                                inflect.no("instruction", len(these_instructions))
-                            ),
+                            lambda: "{} added".format(inflect.no("instruction", len(these_instructions))),
                         ):
                             # link the content
                             for root_str, _, filenames in os.walk(
@@ -1077,9 +1056,7 @@ def Restore(
                         Common.DiffOperation.remove: ("Removing", OnRemoveInstruction),
                     }
 
-                    for directory_index, (directory, these_instructions) in enumerate(
-                        instructions.items()
-                    ):
+                    for directory_index, (directory, these_instructions) in enumerate(instructions.items()):
                         with all_instructions_dm.Nested(
                             f"Processing '{directory}' ({directory_index + 1} of {len(instructions)})...",
                             suffix="\n",
@@ -1117,9 +1094,7 @@ def Restore(
 
                             if not dry_run:
                                 for instruction_index, instruction in enumerate(these_instructions):
-                                    prefix, on_instruction_func = operation_map[
-                                        instruction.operation
-                                    ]
+                                    prefix, on_instruction_func = operation_map[instruction.operation]
 
                                     with instructions_dm.Nested(
                                         f"{prefix} the {'file' if instruction.file_content_path is not None else 'directory'} '{instruction.local_filename}' ({instruction_index + 1} of {len(these_instructions)})...",
@@ -1495,9 +1470,7 @@ def _VerifyRestoredFiles(
     for root_str, _, filenames in os.walk(contents_dir):
         root = Path(root_str)
 
-        all_filenames += [
-            root / filename for filename in filenames if filename != INDEX_HASH_FILENAME
-        ]
+        all_filenames += [root / filename for filename in filenames if filename != INDEX_HASH_FILENAME]
 
     data_store = FileSystemDataStore()
 

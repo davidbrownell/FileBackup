@@ -71,18 +71,12 @@ def Execute(
         CommandLineArguments.input_filename_or_dirs_argument,
     ],
     ssd: Annotated[bool, CommandLineArguments.ssd_option] = CommandLineArguments.ssd_option_default,
-    force: Annotated[
-        bool, CommandLineArguments.force_option
-    ] = CommandLineArguments.force_option_default,
+    force: Annotated[bool, CommandLineArguments.force_option] = CommandLineArguments.force_option_default,
     verbose: Annotated[
         bool, CommandLineArguments.verbose_option
     ] = CommandLineArguments.verbose_option_default,
-    quiet: Annotated[
-        bool, CommandLineArguments.quiet_option
-    ] = CommandLineArguments.quiet_option_default,
-    debug: Annotated[
-        bool, CommandLineArguments.debug_option
-    ] = CommandLineArguments.debug_option_default,
+    quiet: Annotated[bool, CommandLineArguments.quiet_option] = CommandLineArguments.quiet_option_default,
+    debug: Annotated[bool, CommandLineArguments.debug_option] = CommandLineArguments.debug_option_default,
     file_include_params: Annotated[
         list[str],
         CommandLineArguments.file_include_option,
@@ -146,12 +140,8 @@ def Validate(
     verbose: Annotated[
         bool, CommandLineArguments.verbose_option
     ] = CommandLineArguments.verbose_option_default,
-    quiet: Annotated[
-        bool, CommandLineArguments.quiet_option
-    ] = CommandLineArguments.quiet_option_default,
-    debug: Annotated[
-        bool, CommandLineArguments.debug_option
-    ] = CommandLineArguments.debug_option_default,
+    quiet: Annotated[bool, CommandLineArguments.quiet_option] = CommandLineArguments.quiet_option_default,
+    debug: Annotated[bool, CommandLineArguments.debug_option] = CommandLineArguments.debug_option_default,
 ) -> None:
     """Validates previously mirrored content in the backup data store."""
 
@@ -180,9 +170,7 @@ def Cleanup(
     verbose: Annotated[
         bool, CommandLineArguments.verbose_option
     ] = CommandLineArguments.verbose_option_default,
-    debug: Annotated[
-        bool, CommandLineArguments.debug_option
-    ] = CommandLineArguments.debug_option_default,
+    debug: Annotated[bool, CommandLineArguments.debug_option] = CommandLineArguments.debug_option_default,
 ) -> None:
     """Cleans a backup data store after a mirror execution that was interrupted or failed."""
 
