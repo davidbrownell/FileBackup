@@ -223,8 +223,90 @@ jobs:
         run: uv run python -c "import FileBackup as package; assert package.__version__ == '${{ env.PACKAGE_VERSION }}', package.__version__"
 
   # ----------------------------------------------------------------------
+  build_binary:
+    needs: python_package
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: ${{ fromJson(inputs.operating_system_json_string) }}
+
+    name: Build Stand Alone Binary
+    runs-on: ${{ matrix.os }}
+
+    env:
+      PACKAGE_VERSION: ${{ needs.python_package.outputs.package_version }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv and python
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ inputs.python_package_version }}
+          enable-cache: true
+
+      - name: Build Binary
+        run: uv run python BuildBinary.py Build --verbose
+
+      - name: Bundle Binary
+        run: uv run python BuildBinary.py Bundle --custom-filename-suffix "-${{ env.PACKAGE_VERSION }}.${{ matrix.os }}" --verbose
+
+      - name: Upload Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Binary.${{ matrix.os }}
+          path: FileBackup-${{ env.PACKAGE_VERSION }}.*
+  validate_binary:
+    needs: [python_package, build_binary]
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: ${{ fromJson(inputs.operating_system_json_string) }}
+
+    name: Validate Stand Alone Binary
+    runs-on: ${{ matrix.os }}
+
+    env:
+      PACKAGE_VERSION: ${{ needs.python_package.outputs.package_version }}
+
+    permissions: {}
+
+    steps:
+      - name: Download Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: Binary.${{ matrix.os }}
+          path: binary
+
+      - name: Unzip Archive (Windows)
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        run: |-
+          cd binary
+          tar -xf FileBackup-${{ env.PACKAGE_VERSION }}.windows.zip
+
+      - name: Unzip Archive (Not Windows)
+        if: ${{ !startsWith(matrix.os, 'windows') }}
+        run: |-
+          cd binary
+
+          for file in ./*
+          do
+            tar -xvzf "$file"
+          done
+
+      - name: Validate Binary
+        run: binary/FileBackup version
+
+  # ----------------------------------------------------------------------
   release:
-    needs: [package_coverage, python_package, validate_python_package]
+    needs: [package_coverage, python_package, validate_python_package, validate_binary]
 
     name: Release
     runs-on: ubuntu-latest

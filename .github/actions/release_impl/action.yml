@@ -36,11 +36,15 @@ runs:
       with:
         enable-cache: false # No uv.lock or requirements.txt files, so nothing to cache on
 
-    - name: Download Python Package
+    - name: Download Artifacts
       uses: actions/download-artifact@v4
       with:
-        name: Python package
         path: dist
+        merge-multiple: true
+
+    - name: Remove Coverage Files Artifacts
+      shell: bash
+      run: rm dist/.coverage*
 
     # Create repository tag
     - name: Create Repository Tag
