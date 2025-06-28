@@ -864,9 +864,9 @@ def Restore(
                                         directory_working_dir
                                     )
 
-                                    dest_filename.parent.mkdir(parents=True, exist_ok=True)
-
-                                    os.symlink(fullpath, dest_filename)
+                                    if not dest_filename.is_file():
+                                        dest_filename.parent.mkdir(parents=True, exist_ok=True)
+                                        os.symlink(fullpath, dest_filename)
 
                             # Read the instructions
                             with (directory_working_dir / INDEX_FILENAME).open() as f:
