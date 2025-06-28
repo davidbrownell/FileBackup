@@ -1111,6 +1111,49 @@ class TestRestore(object):
                 sep=os.path.sep,
             )
 
+    # ----------------------------------------------------------------------
+    @pytest.mark.parametrize("is_local_filesystem", [True, False])
+    @pytest.mark.parametrize("encryption_password", [None, str(uuid.uuid4())])
+    @pytest.mark.parametrize("compress", [False, True])
+    def test_RestoreMultipleBackupsSameFile(
+        self, _working_dir, tmp_path_factory, compress, encryption_password, is_local_filesystem
+    ):
+        with _YieldInitializedBackupHelper(
+            tmp_path_factory, _working_dir, compress, encryption_password
+        ) as backup_helper:
+            restore_helper = _RestoreHelper.Create(
+                _working_dir,
+                tmp_path_factory,
+                encryption_password,
+                is_local_filesystem,
+                backup_helper.backup_name,
+                backup_helper.output_dir,
+            )
+
+            # Read the contents of a file. We will remove this file, create a backup, and then
+            # restore the same file.
+            file_under_test = _working_dir / "one" / "A"
+            assert file_under_test.is_file(), file_under_test
+
+            file_under_test_contents = file_under_test.read_text(encoding="utf-8")
+
+            backup_file_under_test = restore_helper.backup_dir / "one" / "A"
+
+            # Remove the file
+            file_under_test.unlink()
+
+            backup_helper.ExecuteBackup(_working_dir, compress, encryption_password)
+
+            # Write the file
+            file_under_test.write_text(file_under_test_contents, encoding="utf-8")
+
+            backup_helper.ExecuteBackup(_working_dir, compress, encryption_password)
+
+            # Restore the backup
+            restore_helper.ExecuteRestore(10)
+
+            assert Path(restore_helper.output_dir / "one" / "A").is_file()
+
 
 # ----------------------------------------------------------------------
 class TestRestoreErrors:
@@ -1487,7 +1530,7 @@ class _RestoreHelper(object):
 
         output = cast(str, next(dm_and_content))
 
-        assert dm.result == expected_result
+        assert dm.result == expected_result, output
 
         if expected_num_files is not None:
             TestHelpers.CompareFileSystemSourceAndDestination(
