@@ -555,7 +555,7 @@ def Restore(
             )
             return
 
-        with _YieldTempDirectory("staging content") as staging_directory:
+        with _YieldTempDirectory(working_dir / "staging", "staging content") as staging_directory:
             # ----------------------------------------------------------------------
             @dataclass(frozen=True)
             class Instruction:
@@ -709,15 +709,26 @@ def Restore(
                     def ExecuteTask(
                         status: ExecuteTasks.Status,
                     ) -> Path:
-                        destination_dir = working_dir / directory
+                        # This function will create the following directory structure:
+                        #
+                        #  <working_dir>
+                        #    └── <directory>
+                        #      └── transferred          (temporary)
+                        #      └── decompressed         (temporary)
+                        #      └── final
 
-                        if destination_dir.is_dir():
+                        assert working_dir is not None
+                        this_working_dir = working_dir / directory
+                        final_dir = this_working_dir / "final"
+
+                        if final_dir.is_dir():
                             # The destination already exists, no need to process it further
-                            return destination_dir
+                            return final_dir
 
-                        with _YieldRestoredArchive(
+                        with _YieldTransferredArchive(
                             data_store,  # type: ignore
                             directory,
+                            this_working_dir / "transferred",
                             lambda bytes_transferred: cast(
                                 None,
                                 status.OnProgress(
@@ -725,10 +736,11 @@ def Restore(
                                     bytes_transferred,
                                 ),
                             ),
-                        ) as (archive_directory, archive_directory_is_temporary):
-                            with _YieldRestoredFiles(
+                        ) as (transferred_dir, transferred_dir_is_temporary):
+                            with _YieldDecompressedFiles(
+                                transferred_dir,
+                                this_working_dir / "decompressed",
                                 directory,
-                                archive_directory,
                                 encryption_password,
                                 lambda message: cast(
                                     None,
@@ -737,11 +749,11 @@ def Restore(
                                         message,
                                     ),
                                 ),
-                            ) as (contents_dir, contents_dir_is_temporary):
+                            ) as (decompressed_dir, decompressed_dir_is_temporary):
                                 # Validate the contents
-                                _VerifyRestoredFiles(
+                                _VerifyFiles(
                                     directory,
-                                    contents_dir,
+                                    decompressed_dir,
                                     lambda message: cast(
                                         None,
                                         status.OnProgress(
@@ -755,7 +767,7 @@ def Restore(
                                 # directory structure and doesn't do anything to account for
                                 # nested dirs. This assumption matches the current archive
                                 # format.
-                                if archive_directory_is_temporary or contents_dir_is_temporary:
+                                if transferred_dir_is_temporary or decompressed_dir_is_temporary:
                                     func = cast(Callable[[Path, Path], None], shutil.move)
                                 else:
                                     # ----------------------------------------------------------------------
@@ -770,14 +782,14 @@ def Restore(
 
                                     func = CreateSymLink
 
-                                temp_dest_dir = destination_dir.parent / (destination_dir.name + "__temp__")
+                                temp_dest_dir = final_dir.parent / (final_dir.name + "__temp__")
 
                                 shutil.rmtree(temp_dest_dir, ignore_errors=True)
                                 temp_dest_dir.mkdir(parents=True)
 
                                 items = [
                                     item
-                                    for item in contents_dir.iterdir()
+                                    for item in decompressed_dir.iterdir()
                                     if item.name != INDEX_HASH_FILENAME
                                 ]
 
@@ -789,9 +801,9 @@ def Restore(
 
                                     func(item, temp_dest_dir)
 
-                                shutil.move(temp_dest_dir, destination_dir)
+                                shutil.move(temp_dest_dir, final_dir)
 
-                        return destination_dir
+                        return final_dir
 
                     # ----------------------------------------------------------------------
 
@@ -960,7 +972,8 @@ def Restore(
             with dm.Nested("\nProcessing instructions...") as all_instructions_dm:
                 all_instructions_dm.WriteLine("")
 
-                temp_directory = PathEx.CreateTempDirectory()
+                temp_directory = working_dir / "instructions"
+                temp_directory.mkdir(parents=True, exist_ok=True)
 
                 with ExitStack(lambda: shutil.rmtree(temp_directory)):
                     commit_actions: list[Callable[[], None]] = []
@@ -1287,9 +1300,9 @@ def _CommitFileBasedDataStore(
 # ----------------------------------------------------------------------
 @contextmanager
 def _YieldTempDirectory(
+    temp_directory: Path,
     desc: str,
 ) -> Iterator[Path]:
-    temp_directory = PathEx.CreateTempDirectory()
     should_delete = True
 
     try:
@@ -1299,7 +1312,8 @@ def _YieldTempDirectory(
         raise
     finally:
         if should_delete:
-            shutil.rmtree(temp_directory)
+            if temp_directory.is_dir():
+                shutil.rmtree(temp_directory)
         else:
             sys.stderr.write(
                 f"**** The temporary directory '{temp_directory}' was preserved due to errors while {desc}.\n",
@@ -1308,9 +1322,10 @@ def _YieldTempDirectory(
 
 # ----------------------------------------------------------------------
 @contextmanager
-def _YieldRestoredArchive(
+def _YieldTransferredArchive(
     data_store: FileBasedDataStore,
     directory: str,
+    working_dir: Path,
     status_func: Callable[[str], None],
 ) -> Iterator[
     tuple[
@@ -1318,6 +1333,8 @@ def _YieldRestoredArchive(
         bool,  # is temporary directory
     ],
 ]:
+    """Transfer content from the data store to the local filesystem."""
+
     if data_store.is_local_filesystem:
         working_dir = data_store.GetWorkingDir() / directory
         assert working_dir.is_dir(), working_dir
@@ -1327,7 +1344,7 @@ def _YieldRestoredArchive(
 
     status_func("Calculating files to transfer...")
 
-    with _YieldTempDirectory("transferring archive files") as temp_directory:
+    with _YieldTempDirectory(working_dir, "transferring archive files") as working_dir:
         # Map the remote filenames to local filenames
         filename_map: dict[Path, Path] = {}
 
@@ -1339,7 +1356,7 @@ def _YieldRestoredArchive(
             relative_root = root.relative_to(data_store_dir)
 
             for filename in filenames:
-                filename_map[root / filename] = temp_directory / relative_root / filename
+                filename_map[root / filename] = working_dir / relative_root / filename
 
         if not filename_map:
             raise Exception(f"The directory '{directory}' does not contain any files.")
@@ -1359,14 +1376,15 @@ def _YieldRestoredArchive(
                 ),
             )
 
-        yield temp_directory, True
+        yield working_dir, True
 
 
 # ----------------------------------------------------------------------
 @contextmanager
-def _YieldRestoredFiles(
+def _YieldDecompressedFiles(
+    transferred_dir: Path,
+    decompressed_dir: Path,
     directory_name: str,
-    archive_dir: Path,
     encryption_password: str | None,
     status_func: Callable[[str], None],
 ) -> Iterator[
@@ -1375,8 +1393,10 @@ def _YieldRestoredFiles(
         bool,  # is temporary directory
     ],
 ]:
-    if (archive_dir / INDEX_FILENAME).is_file():
-        yield archive_dir, False
+    """Decompress the archive if necessary"""
+
+    if (transferred_dir / INDEX_FILENAME).is_file():
+        yield transferred_dir, False
         return
 
     # By default, 7zip will prompt for a password with archives that were created
@@ -1394,7 +1414,7 @@ def _YieldRestoredFiles(
     # Validate
     status_func("Validating archive...")
 
-    archive_filename = archive_dir / (ARCHIVE_FILENAME + ".001")
+    archive_filename = transferred_dir / (ARCHIVE_FILENAME + ".001")
 
     if not archive_filename.is_file():
         raise Exception(f"The archive file '{archive_filename.name}' was not found.")
@@ -1424,10 +1444,12 @@ def _YieldRestoredFiles(
     # Extract
     status_func("Extracting archive...")
 
-    with _YieldTempDirectory("extracting the archive") as temp_directory:
+    with _YieldTempDirectory(decompressed_dir, "extracting the archive") as decompressed_dir:
+        decompressed_dir.mkdir(parents=True, exist_ok=True)
+
         result = SubprocessEx.Run(
             f'{_GetZipBinary()} x "{archive_filename}" "-p{password}"',
-            cwd=temp_directory,
+            cwd=decompressed_dir,
         )
 
         if result.returncode != 0:
@@ -1450,11 +1472,11 @@ def _YieldRestoredFiles(
                 ),
             )
 
-        yield temp_directory, True
+        yield decompressed_dir, True
 
 
 # ----------------------------------------------------------------------
-def _VerifyRestoredFiles(
+def _VerifyFiles(
     directory_name: str,
     contents_dir: Path,
     status_func: Callable[[str], None],
