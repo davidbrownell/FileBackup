@@ -1,14 +1,20 @@
 import os
 import shutil
+import textwrap
+import uuid
 
 from pathlib import Path
 from typing import Annotated, Optional
 
 import typer
 
+from dbrownell_Common.ContextlibEx import ExitStack
 from dbrownell_Common import SubprocessEx
 from dbrownell_Common.Streams.DoneManager import DoneManager, Flags as DoneManagerFlags
+import inflect
 from typer.core import TyperGroup
+
+import FileBackup
 
 
 # ----------------------------------------------------------------------
@@ -46,12 +52,49 @@ def Build(
     with DoneManager.CreateCommandLine(
         flags=DoneManagerFlags.Create(verbose=verbose, debug=debug),
     ) as dm:
-        command_line = "cxfreeze --script src/FileBackup/CommandLine/EntryPoint.py --target-name=FileBackup"
+        # inflect uses the typeguard library, which relies on inspect to read the source code of
+        # inflect to enforce that arguments are the correct types when invoking functions. This
+        # works fine when running the application normally, but does not work by default with
+        # cx_Freeze because it does not include the source code of inflect in the built binary. This
+        # means that typeguard can't determine the types of the arguments, which causes it to raise
+        # an exception. The fix is to include the inflect source code in the built binary so that
+        # typeguard can find the function's types and not raise an exception.
+        inflect_filename = Path(inflect.__file__).relative_to(Path(__file__).parent)
 
-        dm.WriteVerbose(f"Command line: {command_line}\n\n")
+        configuration_filename = Path("setup{}.py".format(str(uuid.uuid4()).replace("-", "")))
 
-        with dm.YieldStream() as stream:
-            dm.result = SubprocessEx.Stream(command_line, stream)
+        configuration_filename.write_text(
+            textwrap.dedent(
+                f"""\
+                from cx_Freeze import setup, Executable
+
+                setup(
+                    name = "FileBackup",
+                    version = "{FileBackup.__version__}",
+                    options = {{
+                        "build_exe": {{
+                        "include_files": [
+                            (r"{inflect_filename}", "lib/inflect/{inflect_filename.name}"),
+                        ],
+                    "packages": []
+                        }},
+                    }},
+                    executables = [
+                        Executable(
+                            "src/FileBackup/CommandLine/EntryPoint.py",
+                            target_name="FileBackup",
+                            base=None,
+                        ),
+                    ],
+                )
+                """,
+            ),
+            encoding="utf-8",
+        )
+
+        with ExitStack(configuration_filename.unlink):
+            with dm.YieldStream() as stream:
+                dm.result = SubprocessEx.Stream(f'python "{configuration_filename}" build_exe', stream)
 
 
 # ----------------------------------------------------------------------
