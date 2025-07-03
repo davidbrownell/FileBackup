@@ -66,6 +66,9 @@ jobs:
           python-version: ${{ matrix.python_version }}
           enable-cache: true
 
+      - name: Install Dependencies
+        run: uv sync --frozen
+
       - name: Run pre-commit scripts
         run: uv run pre-commit run --verbose
 
@@ -250,6 +253,9 @@ jobs:
           python-version: ${{ inputs.python_package_version }}
           enable-cache: true
 
+      - name: Install Dependencies
+        run: uv sync --frozen
+
       - name: Build Binary
         run: uv run python BuildBinary.py Build --verbose
 
@@ -261,6 +267,8 @@ jobs:
         with:
           name: Binary.${{ matrix.os }}
           path: FileBackup-${{ env.PACKAGE_VERSION }}.*
+
+  # ----------------------------------------------------------------------
   validate_binary:
     needs: [python_package, build_binary]
 
