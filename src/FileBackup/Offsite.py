@@ -30,16 +30,17 @@ import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import auto, Enum
+from io import StringIO
 from pathlib import Path
 from typing import Any, Callable, cast, Iterator, Pattern
 
-from dbrownell_Common.ContextlibEx import ExitStack  # type: ignore[import-untyped]
-from dbrownell_Common import ExecuteTasks  # type: ignore[import-untyped]
-from dbrownell_Common.InflectEx import inflect  # type: ignore[import-untyped]
-from dbrownell_Common import PathEx  # type: ignore[import-untyped]
-from dbrownell_Common.Streams.DoneManager import DoneManager  # type: ignore[import-untyped]
-from dbrownell_Common import SubprocessEx  # type: ignore[import-untyped]
-from dbrownell_Common import TextwrapEx  # type: ignore[import-untyped]
+from dbrownell_Common.ContextlibEx import ExitStack
+from dbrownell_Common import ExecuteTasks
+from dbrownell_Common.InflectEx import inflect
+from dbrownell_Common import PathEx
+from dbrownell_Common.Streams.DoneManager import DoneManager, Flags as DoneManagerFlags
+from dbrownell_Common import SubprocessEx
+from dbrownell_Common import TextwrapEx
 
 from FileBackup.DataStore.FileSystemDataStore import FileSystemDataStore
 from FileBackup.DataStore.Interfaces.BulkStorageDataStore import BulkStorageDataStore
@@ -530,6 +531,7 @@ def Restore(
     quiet: bool,
     dry_run: bool,
     overwrite: bool,
+    continue_on_errors: bool = False,
 ) -> None:
     with Common.YieldDataStore(
         dm,
@@ -708,7 +710,7 @@ def Restore(
                     # ----------------------------------------------------------------------
                     def ExecuteTask(
                         status: ExecuteTasks.Status,
-                    ) -> Path:
+                    ) -> ExecuteTasks.TransformResultComplete:
                         # This function will create the following directory structure:
                         #
                         #  <working_dir>
@@ -717,93 +719,109 @@ def Restore(
                         #      └── decompressed         (temporary)
                         #      └── final
 
-                        assert working_dir is not None
-                        this_working_dir = working_dir / directory
-                        final_dir = this_working_dir / "final"
+                        sink = StringIO()
 
-                        if final_dir.is_dir():
-                            # The destination already exists, no need to process it further
-                            return final_dir
+                        with DoneManager.Create(
+                            sink,
+                            "",
+                            line_prefix="",
+                            flags=DoneManagerFlags.Create(verbose=dm.is_verbose, debug=dm.is_debug),
+                        ) as dm_sink:
+                            assert working_dir is not None
+                            this_working_dir = working_dir / directory
+                            final_dir = this_working_dir / "final"
 
-                        with _YieldTransferredArchive(
-                            data_store,  # type: ignore
-                            directory,
-                            this_working_dir / "transferred",
-                            lambda bytes_transferred: cast(
-                                None,
-                                status.OnProgress(
-                                    ProcessDirectoryState.Transferring.value + 1,
-                                    bytes_transferred,
-                                ),
-                            ),
-                        ) as (transferred_dir, transferred_dir_is_temporary):
-                            with _YieldDecompressedFiles(
-                                transferred_dir,
-                                this_working_dir / "decompressed",
+                            if final_dir.is_dir():
+                                # The destination already exists, no need to process it further
+                                return ExecuteTasks.TransformResultComplete(final_dir, 0)
+
+                            with _YieldTransferredArchive(
+                                data_store,  # type: ignore
                                 directory,
-                                encryption_password,
-                                lambda message: cast(
+                                this_working_dir / "transferred",
+                                lambda bytes_transferred: cast(
                                     None,
                                     status.OnProgress(
-                                        ProcessDirectoryState.Extracting.value + 1,
-                                        message,
+                                        ProcessDirectoryState.Transferring.value + 1,
+                                        bytes_transferred,
                                     ),
                                 ),
-                            ) as (decompressed_dir, decompressed_dir_is_temporary):
-                                # Validate the contents
-                                _VerifyFiles(
+                            ) as (transferred_dir, transferred_dir_is_temporary):
+                                with _YieldDecompressedFiles(
+                                    dm_sink,
+                                    transferred_dir,
+                                    this_working_dir / "decompressed",
                                     directory,
-                                    decompressed_dir,
+                                    encryption_password,
                                     lambda message: cast(
                                         None,
                                         status.OnProgress(
-                                            ProcessDirectoryState.Verifying.value + 1,
+                                            ProcessDirectoryState.Extracting.value + 1,
                                             message,
                                         ),
                                     ),
-                                )
-
-                                # Move/Copy the content. Note that the code assumes a flat
-                                # directory structure and doesn't do anything to account for
-                                # nested dirs. This assumption matches the current archive
-                                # format.
-                                if transferred_dir_is_temporary or decompressed_dir_is_temporary:
-                                    func = cast(Callable[[Path, Path], None], shutil.move)
-                                else:
-                                    # ----------------------------------------------------------------------
-                                    def CreateSymLink(
-                                        source: Path,
-                                        dest: Path,
-                                    ) -> None:
-                                        dest /= source.name
-                                        os.symlink(source, dest, target_is_directory=source.is_dir())
-
-                                    # ----------------------------------------------------------------------
-
-                                    func = CreateSymLink
-
-                                temp_dest_dir = final_dir.parent / (final_dir.name + "__temp__")
-
-                                shutil.rmtree(temp_dest_dir, ignore_errors=True)
-                                temp_dest_dir.mkdir(parents=True)
-
-                                items = [
-                                    item
-                                    for item in decompressed_dir.iterdir()
-                                    if item.name != INDEX_HASH_FILENAME
-                                ]
-
-                                for item_index, item in enumerate(items):
-                                    status.OnProgress(
-                                        ProcessDirectoryState.Moving.value + 1,
-                                        f"Moving {item_index + 1} of {len(items)}...",
+                                    continue_on_errors=continue_on_errors,
+                                ) as (decompressed_dir, decompressed_dir_is_temporary):
+                                    # Validate the contents
+                                    _VerifyFiles(
+                                        dm_sink,
+                                        directory,
+                                        decompressed_dir,
+                                        lambda message: cast(
+                                            None,
+                                            status.OnProgress(
+                                                ProcessDirectoryState.Verifying.value + 1,
+                                                message,
+                                            ),
+                                        ),
+                                        continue_on_errors=continue_on_errors,
                                     )
 
-                                    func(item, temp_dest_dir)
+                                    # Move/Copy the content. Note that the code assumes a flat
+                                    # directory structure and doesn't do anything to account for
+                                    # nested dirs. This assumption matches the current archive
+                                    # format.
+                                    if transferred_dir_is_temporary or decompressed_dir_is_temporary:
+                                        func = cast(Callable[[Path, Path], None], shutil.move)
+                                    else:
+                                        # ----------------------------------------------------------------------
+                                        def CreateSymLink(
+                                            source: Path,
+                                            dest: Path,
+                                        ) -> None:
+                                            dest /= source.name
+                                            os.symlink(source, dest, target_is_directory=source.is_dir())
 
-                                shutil.move(temp_dest_dir, final_dir)
+                                        # ----------------------------------------------------------------------
 
-                        return final_dir
+                                        func = CreateSymLink
+
+                                    temp_dest_dir = final_dir.parent / (final_dir.name + "__temp__")
+
+                                    shutil.rmtree(temp_dest_dir, ignore_errors=True)
+                                    temp_dest_dir.mkdir(parents=True)
+
+                                    items = [
+                                        item
+                                        for item in decompressed_dir.iterdir()
+                                        if item.name != INDEX_HASH_FILENAME
+                                    ]
+
+                                    for item_index, item in enumerate(items):
+                                        status.OnProgress(
+                                            ProcessDirectoryState.Moving.value + 1,
+                                            f"Moving {item_index + 1} of {len(items)}...",
+                                        )
+
+                                        if item.exists():
+                                            func(item, temp_dest_dir)
+
+                                    shutil.move(temp_dest_dir, final_dir)
+
+                        if dm_sink.result != 0:
+                            status.Log(sink.getvalue())
+
+                        return ExecuteTasks.TransformResultComplete(final_dir, dm_sink.result)
 
                     # ----------------------------------------------------------------------
 
@@ -811,7 +829,7 @@ def Restore(
 
                 # ----------------------------------------------------------------------
 
-                directory_working_dirs: list[Path | None | Exception] = ExecuteTasks.TransformTasksEx(
+                directory_working_dirs: list[object | None | Exception] = ExecuteTasks.TransformTasksEx(
                     preprocess_dm,
                     "Processing",
                     [ExecuteTasks.TaskData(str(directory), directory) for directory in directories],
@@ -821,7 +839,8 @@ def Restore(
                     refresh_per_second=Common.EXECUTE_TASKS_REFRESH_PER_SECOND,
                 )
 
-                if preprocess_dm.result != 0:
+                # Allow the process to continue if warnings were encountered
+                if preprocess_dm.result < 0:
                     return
 
                 assert all(isinstance(working_dir, Path) for working_dir in directory_working_dirs), (
@@ -980,6 +999,8 @@ def Restore(
 
                     # ----------------------------------------------------------------------
                     def WriteImpl(
+                        dm: DoneManager,
+                        action: str,
                         local_filename: Path,
                         content_filename: Path | None,
                     ) -> None:
@@ -998,25 +1019,29 @@ def Restore(
                             commit_actions.append(CommitDir)
                             return
 
+                        content_filename = content_filename.resolve()
                         temp_filename = temp_directory / str(uuid.uuid4())
 
-                        with content_filename.resolve().open("rb") as source:
-                            with temp_filename.open("wb") as dest:
-                                dest.write(source.read())
+                        if not content_filename.is_file():
+                            dm.WriteError(f"The file could not be {action} as its archive data is missing.\n")
+                        else:
+                            with content_filename.open("rb") as source:
+                                with temp_filename.open("wb") as dest:
+                                    dest.write(source.read())
 
-                        # ----------------------------------------------------------------------
-                        def CommitFile() -> None:
-                            if local_filename.is_dir():
-                                shutil.rmtree(local_filename)
-                            elif local_filename.is_file():
-                                local_filename.unlink()
+                            # ----------------------------------------------------------------------
+                            def CommitFile() -> None:
+                                if local_filename.is_dir():
+                                    shutil.rmtree(local_filename)
+                                elif local_filename.is_file():
+                                    local_filename.unlink()
 
-                            local_filename.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.move(temp_filename, local_filename)
+                                local_filename.parent.mkdir(parents=True, exist_ok=True)
+                                shutil.move(temp_filename, local_filename)
 
-                        # ----------------------------------------------------------------------
+                            # ----------------------------------------------------------------------
 
-                        commit_actions.append(CommitFile)
+                            commit_actions.append(CommitFile)
 
                     # ----------------------------------------------------------------------
                     def OnAddInstruction(
@@ -1029,7 +1054,7 @@ def Restore(
                             )
                             return
 
-                        WriteImpl(instruction.local_filename, instruction.file_content_path)
+                        WriteImpl(dm, "restored", instruction.local_filename, instruction.file_content_path)
 
                     # ----------------------------------------------------------------------
                     def OnModifyInstruction(
@@ -1037,7 +1062,7 @@ def Restore(
                         instruction: Instruction,
                     ) -> None:
                         assert instruction.file_content_path is not None
-                        WriteImpl(instruction.local_filename, instruction.file_content_path)
+                        WriteImpl(dm, "modified", instruction.local_filename, instruction.file_content_path)
 
                     # ----------------------------------------------------------------------
                     def OnRemoveInstruction(
@@ -1114,7 +1139,7 @@ def Restore(
                                     ) as execute_dm:
                                         on_instruction_func(execute_dm, instruction)
 
-                                        if execute_dm.result != 0:
+                                        if execute_dm.result != 0 and not continue_on_errors:
                                             break
 
                                 instructions_dm.WriteLine("")
@@ -1382,11 +1407,14 @@ def _YieldTransferredArchive(
 # ----------------------------------------------------------------------
 @contextmanager
 def _YieldDecompressedFiles(
+    dm: DoneManager,
     transferred_dir: Path,
     decompressed_dir: Path,
     directory_name: str,
     encryption_password: str | None,
     status_func: Callable[[str], None],
+    *,
+    continue_on_errors: bool,
 ) -> Iterator[
     tuple[
         Path,
@@ -1411,18 +1439,17 @@ def _YieldDecompressedFiles(
     #
     password = encryption_password or str(uuid.uuid4())
 
-    # Validate
-    status_func("Validating archive...")
-
     archive_filename = transferred_dir / (ARCHIVE_FILENAME + ".001")
 
     if not archive_filename.is_file():
         raise Exception(f"The archive file '{archive_filename.name}' was not found.")
 
-    result = SubprocessEx.Run(f'{_GetZipBinary()} t "{archive_filename}" "-p{password}"')
-    if result.returncode != 0:
-        raise Exception(
-            textwrap.dedent(
+    # Validate
+    status_func("Validating archive...")
+    with dm.Nested("Validating archive...") as validate_dm:
+        result = SubprocessEx.Run(f'{_GetZipBinary()} t "{archive_filename}" "-p{password}"')
+        if result.returncode != 0:
+            message = textwrap.dedent(
                 """\
                 Archive validation failed for the directory '{}' ({}).
 
@@ -1438,29 +1465,32 @@ def _YieldDecompressedFiles(
                     4,
                     skip_first_line=True,
                 ),
-            ),
-        )
+            )
+
+            if continue_on_errors:
+                validate_dm.WriteWarning(message)
+            else:
+                raise Exception(message)
 
     # Extract
-    status_func("Extracting archive...")
-
     with _YieldTempDirectory(decompressed_dir, "extracting the archive") as decompressed_dir:
-        decompressed_dir.mkdir(parents=True, exist_ok=True)
+        status_func("Extracting archive...")
+        with dm.Nested("Extracting archive...") as extract_dm:
+            decompressed_dir.mkdir(parents=True, exist_ok=True)
 
-        result = SubprocessEx.Run(
-            f'{_GetZipBinary()} x "{archive_filename}" "-p{password}"',
-            cwd=decompressed_dir,
-        )
+            result = SubprocessEx.Run(
+                f'{_GetZipBinary()} x "{archive_filename}" "-p{password}"',
+                cwd=decompressed_dir,
+            )
 
-        if result.returncode != 0:
-            raise Exception(
-                textwrap.dedent(
+            if result.returncode != 0:
+                message = textwrap.dedent(
                     """\
-                    Archive extraction failed for the directory '{}' ({}).
+                        Archive extraction failed for the directory '{}' ({}).
 
-                        {}
+                            {}
 
-                    """,
+                        """,
                 ).format(
                     directory_name,
                     result.returncode,
@@ -1469,67 +1499,74 @@ def _YieldDecompressedFiles(
                         4,
                         skip_first_line=True,
                     ),
-                ),
-            )
+                )
+
+                if continue_on_errors:
+                    extract_dm.WriteWarning(message)
+                else:
+                    raise Exception(message)
 
         yield decompressed_dir, True
 
 
 # ----------------------------------------------------------------------
 def _VerifyFiles(
+    dm: DoneManager,
     directory_name: str,
     contents_dir: Path,
     status_func: Callable[[str], None],
+    *,
+    continue_on_errors: bool,
 ) -> None:
     # Ensure that the index is present
     for index_filename in [INDEX_FILENAME, INDEX_HASH_FILENAME]:
         if not (contents_dir / index_filename).is_file():
             raise Exception(f"The index file '{index_filename}' does not exist.")
 
-    # Ensure that the content is valid
-    all_filenames: list[Path] = []
+    with dm.Nested("Verifying files...") as verify_dm:
+        # Ensure that the content is valid
+        all_filenames: list[Path] = []
 
-    for root_str, _, filenames in os.walk(contents_dir):
-        root = Path(root_str)
+        for root_str, _, filenames in os.walk(contents_dir):
+            root = Path(root_str)
 
-        all_filenames += [root / filename for filename in filenames if filename != INDEX_HASH_FILENAME]
+            all_filenames += [root / filename for filename in filenames if filename != INDEX_HASH_FILENAME]
 
-    data_store = FileSystemDataStore()
+        data_store = FileSystemDataStore()
 
-    errors: list[str] = []
+        errors: list[str] = []
 
-    for filename_index, filename in enumerate(all_filenames):
-        if filename.name == INDEX_FILENAME:
-            expected_hash_value = (contents_dir / INDEX_HASH_FILENAME).read_text().strip()
-        else:
-            expected_hash_value = filename.name
+        for filename_index, filename in enumerate(all_filenames):
+            if filename.name == INDEX_FILENAME:
+                expected_hash_value = (contents_dir / INDEX_HASH_FILENAME).read_text().strip()
+            else:
+                expected_hash_value = filename.name
 
-        file_size = filename.stat().st_size or 1
+            file_size = filename.stat().st_size or 1
 
-        status_template = f"Validating file {filename_index + 1} of {len(all_filenames)} [{PathEx.GetSizeDisplay(file_size)}] {{:.02f}}%..."
+            status_template = f"Validating file {filename_index + 1} of {len(all_filenames)} [{PathEx.GetSizeDisplay(file_size)}] {{:.02f}}%..."
 
-        actual_hash_value = Common.CalculateHash(
-            data_store,
-            filename,
-            lambda bytes_transferred: status_func(
-                status_template.format((bytes_transferred / file_size) * 100)
-            ),
-        )
-
-        if actual_hash_value != expected_hash_value:
-            errors.append(
-                textwrap.dedent(
-                    f"""\
-                    Filename:  {filename.relative_to(contents_dir)}
-                    Expected:  {expected_hash_value}
-                    Actual:    {actual_hash_value}
-                    """,
+            actual_hash_value = Common.CalculateHash(
+                data_store,
+                filename,
+                lambda bytes_transferred: status_func(
+                    status_template.format((bytes_transferred / file_size) * 100)
                 ),
             )
 
-    if errors:
-        raise Exception(
-            textwrap.dedent(
+            if actual_hash_value != expected_hash_value:
+                errors.append(
+                    textwrap.dedent(
+                        f"""\
+                        Filename:  {filename.relative_to(contents_dir)}
+                        Expected:  {expected_hash_value}
+                        Actual:    {actual_hash_value}
+                        """,
+                    ),
+                )
+
+        if errors:
+            message = textwrap.dedent(
                 """\
                 Corrupt files were encountered in the directory '{}'.
 
@@ -1543,5 +1580,9 @@ def _VerifyFiles(
                     4,
                     skip_first_line=True,
                 ),
-            ),
-        )
+            )
+
+            if continue_on_errors:
+                verify_dm.WriteWarning(message)
+            else:
+                raise Exception(message)

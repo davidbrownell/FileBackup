@@ -241,6 +241,12 @@ def Restore(  # pylint: disable=dangerous-default-value
             help="Working directory to use when decompressing archives; provide this value during a dry run and subsequent execution to only download and extract the backup content once.",
         ),
     ] = None,
+    continue_on_errors: Annotated[
+        bool,
+        typer.Option(
+            "--continue-on-errors", help="Continue restoring files even if some files cannot be restored."
+        ),
+    ] = False,
 ) -> None:
     """Restores content from an offsite data store."""
 
@@ -263,6 +269,7 @@ def Restore(  # pylint: disable=dangerous-default-value
                 quiet=quiet,
                 dry_run=dry_run,
                 overwrite=overwrite,
+                continue_on_errors=continue_on_errors,
             )
 
 

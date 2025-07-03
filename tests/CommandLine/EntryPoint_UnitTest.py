@@ -447,6 +447,7 @@ class TestOffsite:
                 kwargs = restore.call_args_list[0].kwargs
 
                 assert kwargs == {
+                    "continue_on_errors": False,
                     "ssd": False,
                     "quiet": False,
                     "dry_run": False,
@@ -483,6 +484,7 @@ class TestOffsite:
                     "--overwrite",
                     "--ssd",
                     "--quiet",
+                    "--continue-on-errors",
                 ]
 
                 result = CliRunner().invoke(app, args)
@@ -501,6 +503,7 @@ class TestOffsite:
                 kwargs = restore.call_args_list[0].kwargs
 
                 assert kwargs == {
+                    "continue_on_errors": True,
                     "ssd": True,
                     "quiet": True,
                     "dry_run": True,
