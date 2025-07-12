@@ -1,7 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
 .coverage
 .DS_Store
 .vscode
-__pycache__
+coverage.xml
 minisign_key.pri
 post_generation_instructions.html
-build/
