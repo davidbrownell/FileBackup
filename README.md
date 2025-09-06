@@ -4,7 +4,7 @@
 **Package:**
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/FileBackup?color=dark-green)](https://pypi.org/project/FileBackup/)
 [![PyPI - Version](https://img.shields.io/pypi/v/FileBackup?color=dark-green)](https://pypi.org/project/FileBackup/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/FileBackup)](https://pypistats.org/packages/FileBackup)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/FileBackup)](https://pypistats.org/packages/filebackup)
 
 **Development:**
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
