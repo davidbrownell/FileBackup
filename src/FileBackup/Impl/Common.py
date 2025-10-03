@@ -341,7 +341,7 @@ def YieldDataStore(
 
             private_key_filename = Path(private_key_or_password)
             if private_key_filename.is_file():
-                private_key_or_password = private_key_filename.read_text()
+                private_key_or_password = private_key_filename
 
             working_dir = sftp_match.group("working_dir")
             if working_dir:
