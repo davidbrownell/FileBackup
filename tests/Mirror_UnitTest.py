@@ -937,9 +937,8 @@ class TestFileSystemValidate:
     @pytest.mark.parametrize("validate_type", [ValidateType.standard, ValidateType.complete])
     def test_NoChange(self, tmp_path_factory, working_dir, validate_type):
         self._Test(
-            lambda content_dir: (
-                textwrap.dedent(
-                    """\
+            lambda content_dir: textwrap.dedent(
+                """\
                     Heading...
                       Reading 'BackupSnapshot.json'...
 
@@ -964,13 +963,12 @@ class TestFileSystemValidate:
                       DONE! (0, <scrubbed duration>)
                     DONE! (0, <scrubbed duration>)
                     """,
-                ).format(
-                    (
-                        "Retrieving file information..."
-                        if validate_type == ValidateType.standard
-                        else "Calculating hashes..."
-                    ),
-                )
+            ).format(
+                (
+                    "Retrieving file information..."
+                    if validate_type == ValidateType.standard
+                    else "Calculating hashes..."
+                ),
             ),
             tmp_path_factory,
             working_dir,

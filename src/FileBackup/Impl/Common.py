@@ -291,7 +291,7 @@ def GetDestinationHelp() -> str:
         Writes content to a SFTP server.
 
             Format:
-                ftp://<username>:<password or posix path to private key>@<host>[:<port>][/<working_dir>]
+                ftp://<username>:<password or posix path to private key>@<host>\\[:<port>]\\[/<working_dir>]
 
             Examples:
                 ftp://my_username:my_password@my_server.com
@@ -304,7 +304,7 @@ def GetDestinationHelp() -> str:
         Write content using the Fast Glacier application (https://fastglacier.com/).
 
             Format:
-                fast_glacier://<fast_glacier_account_name>@<aws_region>[/<glacier_dir>]
+                fast_glacier://<fast_glacier_account_name>@<aws_region>\\[/<glacier_dir>]
 
             Examples:
                 fast_glacier://MyFastGlacierAccount@us-west-2
@@ -315,7 +315,7 @@ def GetDestinationHelp() -> str:
         Write content using the S3 Browser application (https://s3browser.com/).
 
             Format:
-                s3_browser://<s3_browser_account_name>@<bucket_name>[/<working_dir>]
+                s3_browser://<s3_browser_account_name>@<bucket_name>\\[/<working_dir>]
 
             Examples:
                 s3_browser://MyS3BrowserAccount@MyBucket
