@@ -3,6 +3,7 @@ import shutil
 import textwrap
 import uuid
 
+from importlib import metadata
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -59,7 +60,49 @@ def Build(
         # means that typeguard can't determine the types of the arguments, which causes it to raise
         # an exception. The fix is to include the inflect source code in the built binary so that
         # typeguard can find the function's types and not raise an exception.
-        inflect_filename = Path(inflect.__file__).relative_to(Path(__file__).parent)
+        #
+        # Note that this must be an absolute path; inflect is installed into the virtual
+        # environment, which is not guaranteed to live under this file's directory (for example,
+        # when UV_PROJECT_ENVIRONMENT points elsewhere).
+        inflect_filename = Path(inflect.__file__).resolve()
+
+        # FileBackup/__init__.py invokes importlib.metadata.version to determine the version of the
+        # application, which requires that this distribution's metadata is included in the binary.
+        #
+        # cx_Freeze automatically includes the metadata of the distributions that it detects, but it
+        # does not reliably detect this one. cx_Freeze (>= 8.7.0) maps import names to distributions
+        # using importlib.metadata.packages_distributions, and that function cannot map the
+        # "FileBackup" import name back to the "FileBackup" distribution because the distribution is
+        # installed in editable mode (its top_level.txt is empty and the package is made available
+        # via a .pth file). cx_Freeze then falls back to including any distribution that it did not
+        # map, which happens to work on a development machine but not on a build machine.
+        #
+        # Without this metadata, the binary terminates during startup with
+        # "importlib.metadata.PackageNotFoundError: No package metadata was found for FileBackup".
+        #
+        # Include the metadata explicitly so that it is found at runtime regardless of the above.
+        distribution = metadata.distribution("FileBackup")
+
+        dist_info_path = Path(str(distribution.locate_file(""))).resolve() / "{}-{}.dist-info".format(
+            distribution.name.replace("-", "_").lower(),
+            distribution.version,
+        )
+
+        if not dist_info_path.is_dir():
+            dm.WriteError(f"The distribution metadata at '{dist_info_path}' was not found.\n")
+            return
+
+        # Note that this is written as a single line so that it does not interfere with the
+        # textwrap.dedent invocation below.
+        zip_includes = ", ".join(
+            '(r"{}", "{}/{}")'.format(
+                filename,
+                dist_info_path.name,
+                filename.relative_to(dist_info_path).as_posix(),
+            )
+            for filename in sorted(dist_info_path.rglob("*"))
+            if filename.is_file()
+        )
 
         configuration_filename = Path("setup{}.py".format(str(uuid.uuid4()).replace("-", "")))
 
@@ -76,7 +119,13 @@ def Build(
                         "include_files": [
                             (r"{inflect_filename}", "lib/inflect/{inflect_filename.name}"),
                         ],
-                    "packages": []
+                        # This distribution's metadata is placed within the zip file because that is
+                        # where importlib.metadata looks for it at runtime.
+                        "zip_includes": [{zip_includes}],
+                        # typeguard (pulled in by inflect) imports unittest.mock at module scope,
+                        # but cx_Freeze does not detect unittest as a dependency. Without it, the
+                        # binary fails at startup with "No module named 'unittest'".
+                        "packages": ["unittest"],
                         }},
                     }},
                     executables = [

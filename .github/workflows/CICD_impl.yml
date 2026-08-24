@@ -249,6 +249,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Install uv and python
         uses: astral-sh/setup-uv@v7
@@ -258,6 +260,9 @@ jobs:
 
       - name: Install Dependencies
         run: uv sync --frozen
+
+      - name: Update Version
+        run: uv run python -m AutoGitSemVer.scripts.UpdatePythonVersion ./pyproject.toml ./src --verbose
 
       - name: Build Binary
         run: uv run python BuildBinary.py Build --verbose
@@ -317,7 +322,13 @@ jobs:
 
   # ----------------------------------------------------------------------
   release:
-    needs: [package_coverage, python_package, validate_python_package, validate_binary]
+    needs:
+      [
+        package_coverage,
+        python_package,
+        validate_python_package,
+        validate_binary,
+      ]
 
     name: Release
     runs-on: ubuntu-latest
@@ -329,7 +340,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     permissions:
-      contents: write  # To tag the repository and create the release
+      contents: write # To tag the repository and create the release
 
     steps:
       - uses: actions/checkout@v6
