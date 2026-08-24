@@ -6,7 +6,7 @@
 # available at https://github.com/gt-csse/copier-UvScaffolding.
 #
 
-_commit: v0.5.11
+_commit: v0.5.13
 _src_path: .
 author_email: github@DavidBrownell.com
 author_name: David Brownell
@@ -19,5 +19,5 @@ install_ty: false
 license: MIT
 project_name: FileBackup
 python_package_name: FileBackup
-python_versions: 3.10, 3.11, 3.12, 3.13
+python_versions: 3.11, 3.12, 3.13
 sign_artifacts_question: true
